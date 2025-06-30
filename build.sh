@@ -1,1 +1,1 @@
-odin build src -out:bin/raylib-gizmo-odin 
+odin run . -out:bin/raylib-gizmo-odin 
