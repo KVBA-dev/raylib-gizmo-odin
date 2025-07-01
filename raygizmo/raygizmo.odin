@@ -22,9 +22,9 @@ GizmoAction :: enum {
 }
 
 GizmoAxisName :: enum int {
-	X,
-	Y,
-	Z,
+	X = 0,
+	Y = 1,
+	Z = 2,
 }
 
 GizmoActiveAxis :: bit_set[GizmoAxisName]
@@ -59,6 +59,7 @@ GizmoGlobals :: struct {
 	startTransform:       rl.Transform,
 	activeTransform:      ^rl.Transform,
 	startWorldMouse:      rl.Vector3,
+	camera:               ^rl.Camera,
 }
 
 GizmoData :: struct {
@@ -78,7 +79,7 @@ GIZMO := GizmoGlobals {
 		.Z = {normal = {0, 0, 1}, color = {69, 138, 242, 255}},
 	},
 	gizmoSize = 1.5,
-	lineWidth = 2.5,
+	lineWidth = 1,
 	trArrowLengthFactor = 0.15,
 	trArrowWidthFactor = 0.1,
 	trPlaneOffsetFactor = 0.3,
@@ -87,6 +88,10 @@ GIZMO := GizmoGlobals {
 	trCircleColor = {255, 255, 255, 200},
 	curAction = .None,
 	activeAxis = {},
+}
+
+SetCamera :: proc(camera: ^rl.Camera) {
+	GIZMO.camera = camera
 }
 
 GizmoIdentity :: proc() -> rl.Transform {
@@ -115,11 +120,18 @@ DrawGizmo3D :: proc(flags: GizmoFlags, transform: ^rl.Transform) -> bool {
 
 	data.invViewProj = rl.MatrixInvert(matProj) * invMat
 
+	/* FIXME:
 	data.camPos = {invMat[0, 3], invMat[1, 3], invMat[2, 3]} //{m12, m13, m14}
 	data.right = {matView[0, 0], matView[1, 0], matView[2, 0]} //{m0, m4, m8}
 	data.up = {matView[0, 1], matView[1, 1], matView[2, 1]} //{m1, m5, m9}
 	data.forward = la.normalize(transform.translation - data.camPos)
 	//data.forward = la.cross(data.right, data.up)
+	*/
+
+	data.camPos = GIZMO.camera.position
+	data.forward = la.normalize(transform.translation - data.camPos)
+	data.right = la.normalize(la.cross(GIZMO.camera.up, data.forward))
+	data.up = la.cross(data.forward, data.right)
 
 	data.curTransform = transform
 	data.gizmoSize = GIZMO.gizmoSize * la.distance(data.camPos, transform.translation) * 0.1
@@ -140,6 +152,9 @@ DrawGizmo3D :: proc(flags: GizmoFlags, transform: ^rl.Transform) -> bool {
 		}
 		if .Scale in data.flags {
 			DrawGizmoCube(&data, ax)
+		}
+		if .Translate in data.flags || .Scale in data.flags {
+			DrawGizmoPlane(&data, ax)
 		}
 		if .Rotate in data.flags {
 			DrawGizmoCircle(&data, ax)
@@ -353,14 +368,14 @@ DrawGizmoCube :: proc(data: ^GizmoData, axis: GizmoAxisName) {
 }
 
 @(private)
-DrawGizmoPlane :: proc(data: ^GizmoData, index: int) {
+DrawGizmoPlane :: proc(data: ^GizmoData, axis: GizmoAxisName) {
 	if IsThisGizmoTransforming(data) {
 		return
 	}
 
-	dir1 := data.axis[(GizmoAxisName)((index + 1) % 3)]
-	dir2 := data.axis[(GizmoAxisName)((index + 2) % 3)]
-	col := GIZMO.axisCfg[(GizmoAxisName)(index)].color
+	dir1 := data.axis[(GizmoAxisName)((int(axis) + 1) % 3)]
+	dir2 := data.axis[(GizmoAxisName)((int(axis) + 2) % 3)]
+	col := GIZMO.axisCfg[(GizmoAxisName)(int(axis))].color
 
 	offset := GIZMO.trPlaneOffsetFactor * data.gizmoSize
 	size := GIZMO.trPlaneSizeFactor * data.gizmoSize
@@ -633,7 +648,9 @@ CheckGizmoCenter :: proc(data: ^GizmoData, ray: rl.Ray) -> bool {
 @(private)
 GetWorldMouse :: proc(data: ^GizmoData) -> rl.Vector3 {
 	dist := la.distance(data.camPos, data.curTransform.translation)
-	mouseRay := Vec3ScreenToWorldRay(rl.GetMousePosition(), &data.invViewProj)
+	// FIXME:
+	//mouseRay := Vec3ScreenToWorldRay(rl.GetMousePosition(), &data.invViewProj)
+	mouseRay := rl.GetScreenToWorldRay(rl.GetMousePosition(), GIZMO.camera^)
 	fmt.println(mouseRay.position + mouseRay.direction * dist)
 	return mouseRay.position + mouseRay.direction * dist
 }
@@ -641,9 +658,8 @@ GetWorldMouse :: proc(data: ^GizmoData) -> rl.Vector3 {
 @(private)
 GizmoHandleInput :: proc(data: ^GizmoData) {
 	action := GIZMO.curAction
-	rl.DrawRay(Vec3ScreenToWorldRay(rl.GetMousePosition(), &data.invViewProj), rl.RED)
 	if action != .None {
-		if !rl.IsMouseButtonDown(.LEFT) {
+		if rl.IsMouseButtonUp(.LEFT) {
 			action = .None
 			GIZMO.activeAxis = {}
 		} else {
@@ -715,11 +731,11 @@ GizmoHandleInput :: proc(data: ^GizmoData) {
 		}
 	} else {
 		if rl.IsMouseButtonPressed(.LEFT) {
-			mouseRay := Vec3ScreenToWorldRay(rl.GetMousePosition(), &data.invViewProj)
-			rl.DrawRay(mouseRay, rl.RED)
+			//mouseRay := Vec3ScreenToWorldRay(rl.GetMousePosition(), &data.invViewProj)
+			mouseRay := rl.GetScreenToWorldRay(rl.GetMousePosition(), GIZMO.camera^)
 
 			hit := -1
-			action := GizmoAction.None
+			action = GizmoAction.None
 
 			k := 0
 			for hit == -1 && k < 2 {
