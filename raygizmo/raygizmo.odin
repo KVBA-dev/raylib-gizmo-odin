@@ -1,6 +1,5 @@
 package raygizmo
 
-import "core:fmt"
 import "core:math"
 import la "core:math/linalg"
 import rl "vendor:raylib"
@@ -99,15 +98,22 @@ GizmoIdentity :: proc() -> rl.Transform {
 }
 
 GizmoToMatrix :: proc(transform: rl.Transform) -> rl.Matrix {
-	return(
-		rl.MatrixScale(transform.scale.x, transform.scale.y, transform.scale.z) *
-		rl.QuaternionToMatrix(transform.rotation) *
-		rl.MatrixTranslate(
-			transform.translation.x,
-			transform.translation.y,
-			transform.translation.z,
-		) \
+	return rl.MatrixTranspose(
+		transmute(rl.Matrix)la.matrix4_from_trs(
+			transform.translation,
+			transform.rotation,
+			transform.scale,
+		),
 	)
+	//return(
+	//	rl.MatrixScale(transform.scale.x, transform.scale.y, transform.scale.z) *
+	//	rl.QuaternionToMatrix(transform.rotation) *
+	//	rl.MatrixTranslate(
+	//		transform.translation.x,
+	//		transform.translation.y,
+	//		transform.translation.z,
+	//	) \
+	//)
 }
 
 DrawGizmo3D :: proc(flags: GizmoFlags, transform: ^rl.Transform) -> bool {
@@ -651,7 +657,6 @@ GetWorldMouse :: proc(data: ^GizmoData) -> rl.Vector3 {
 	// FIXME:
 	//mouseRay := Vec3ScreenToWorldRay(rl.GetMousePosition(), &data.invViewProj)
 	mouseRay := rl.GetScreenToWorldRay(rl.GetMousePosition(), GIZMO.camera^)
-	fmt.println(mouseRay.position + mouseRay.direction * dist)
 	return mouseRay.position + mouseRay.direction * dist
 }
 
