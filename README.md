@@ -1,16 +1,19 @@
 # raylib-gizmo-odin
 
 This is an Odin port of raylib-gizmo by [Claudio Z. (cloudofoz)](https://github.com/cloudofoz)
+
 [Link to original repository](https://github.com/cloudofoz/raylib-gizmo/)
 
 This library allows to draw gizmos in 3D scene. It's got immediate-mode-like behaviour,
 meaning all of the drawing and input handling happens in a single function call.
 
+To use it, simply clone this repository, then copy the raygizmo directory to your project.
+
 At this stage, the library is functional, however there are some bugs, namely around
 rotation and scale gizmos. It also requires a reference to a `rl.Camera3D`, which the
 original does not have.
 
-Here's an example program
+Here's an example program showcasing how it works:
 
 ```odin
 package main
