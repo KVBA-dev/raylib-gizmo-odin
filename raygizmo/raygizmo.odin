@@ -366,8 +366,8 @@ DrawGizmoCube :: proc(data: ^GizmoData, axis: GizmoAxisName) {
 	rlgl.Vertex3f(e.x, e.y, e.z)
 
 	rlgl.Vertex3f(c.x, c.y, c.z)
-	rlgl.Vertex3f(h.x, h.y, h.z)
 	rlgl.Vertex3f(g.x, g.y, g.z)
+	rlgl.Vertex3f(h.x, h.y, h.z)
 	rlgl.Vertex3f(d.x, d.y, d.z)
 
 	rlgl.End()
@@ -594,7 +594,7 @@ CheckGizmoAxis :: proc(
 	halfDim[(int(axis) + 1) % 3] = data.gizmoSize * GIZMO.trArrowWidthFactor * 0.5
 	halfDim[(int(axis) + 2) % 3] = halfDim[(int(axis) + 1) % 3]
 
-	if type == {.Scale} || CheckGizmoType(data, {.Translate, .Scale}) {
+	if type == {.Scale} && CheckGizmoType(data, {.Translate, .Scale}) {
 		halfDim[int(axis)] *= 0.5
 	}
 
@@ -635,6 +635,7 @@ CheckGizmoCircle :: proc(data: ^GizmoData, index: int, ray: rl.Ray) -> bool {
 		defer i += angleStep
 		angle := f32(i) * math.RAD_PER_DEG
 		p := origin + dir1 * math.sin(angle) * circleRadius
+		p += dir2 * math.cos(angle) * circleRadius
 		if rl.GetRayCollisionSphere(ray, p, sphereRadius).hit {
 			return true
 		}
