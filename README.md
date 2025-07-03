@@ -9,9 +9,8 @@ meaning all of the drawing and input handling happens in a single function call.
 
 To use it, simply clone this repository, then copy the raygizmo directory to your project.
 
-At this stage, the library is functional, however there are some bugs, namely around
-rotation and scale gizmos. It also requires a reference to a `rl.Camera3D`, which the
-original does not have.
+At this stage, the library is functional, however it slightly diverges from the original. 
+Right now it requires a reference to a `rl.Camera3D`, and it's only for raycasting.
 
 Here's an example program showcasing how it works:
 
